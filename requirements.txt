@@ -1,0 +1,11 @@
+accelerate==1.6.0
+datasets==3.5.0
+Faker==37.1.0
+pandas==2.2.3
+scikit-learn==1.6.1
+sentence-transformers==4.1.0
+torch==2.7.0
+tqdm==4.67.1
+uvicorn==0.34.2
+matplotlib==3.10.1
+fastapi==0.115.12
