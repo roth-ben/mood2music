@@ -1,8 +1,43 @@
 # Music Recommendation System 🎵🤖
 
-A lightweight, Dockerized music recommendation engine designed for experimentation and small-scale deployment. The system generates synthetic mood-based training data, fine-tunes a sentence-transformers model for semantic song-mood matching, and serves personalized recommendations via a REST API. Optimized for efficiency, it supports GPU acceleration (NVIDIA RTX 30-series or newer with ≥2GB VRAM) to enable fast training and inference on local hardware, ideal for prototyping, research, or hobbyist use.
+A Dockerized music recommendation system that generates synthetic data, trains a model, and serves personalized song recommendations via a REST API. Supports GPU acceleration for efficient training and inference.
 
 ![Docker](https://img.shields.io/badge/Docker-✔️-success) ![GPU Support](https://img.shields.io/badge/NVIDIA_GPU-✔️-76B900) ![REST API](https://img.shields.io/badge/REST_API-✔️-blue)
+
+## Table of Contents
+
+- [Music Recommendation System 🎵🤖](#music-recommendation-system-)
+  - [Table of Contents](#table-of-contents)
+  - [Features ✨](#features-)
+  - [Prerequisites 📋](#prerequisites-)
+  - [Getting Started 🚀](#getting-started-)
+    - [1. Build Docker Image](#1-build-docker-image)
+    - [2. Run Container (with GPU Support)](#2-run-container-with-gpu-support)
+    - [3. Generate Fake Music Data](#3-generate-fake-music-data)
+    - [4. Train Model on Mood Awareness](#4-train-model-on-mood-awareness)
+  - [API Documentation 📖](#api-documentation-)
+    - [Recommendation Endpoint](#recommendation-endpoint)
+  - [Usage Examples 💡](#usage-examples-)
+    - [Basic Recommendation](#basic-recommendation)
+    - [Custom Recommendation Count](#custom-recommendation-count)
+  - [Project Structure 📂](#project-structure-)
+  - [Troubleshooting 🔧](#troubleshooting-)
+    - [Common Issues](#common-issues)
+    - [Without GPU Support](#without-gpu-support)
+- [Data Quality Tester](#data-quality-tester)
+  - [Quick Start](#quick-start)
+  - [What It Checks](#what-it-checks)
+- [Embedding Debugger](#embedding-debugger)
+  - [Quick Start](#quick-start-1)
+  - [What It Checks](#what-it-checks-1)
+- [Model Performance Tester](#model-performance-tester)
+  - [Quick Start](#quick-start-2)
+  - [Key Features](#key-features)
+  - [Interpretation Guide](#interpretation-guide)
+  - [Key Metrics](#key-metrics)
+- [Product-Scale Deployment](#product-scale-deployment)
+    - [**1. System Goals \& Non-Functional Requirements**](#1-system-goals--non-functional-requirements)
+    - [**2. Technical Architecture Components**](#2-technical-architecture-components)
 
 ## Features ✨
 
@@ -15,7 +50,7 @@ A lightweight, Dockerized music recommendation engine designed for experimentati
 ## Prerequisites 📋
 
 - Docker Engine ≥ 20.10
-- NVIDIA CUDA-Supported GPU (RTX 30's+ series)
+- NVIDIA CUDA-Supported GPU (30's+ series)
 - NVIDIA Docker Toolkit (for GPU acceleration)
 - Python 3.8+ (for local development)
 - curl (for API testing)
@@ -76,8 +111,7 @@ Initial execution may take longer due to:
   "tracks": [
     {
         "id": "Song ID",
-        "artist": "Artist Name",
-        "title": "Song Title",
+        "title": "Artist Name",
         "score": 0.95,
         "mood": "calm"
     },
@@ -99,13 +133,8 @@ curl -X POST http://localhost:8080/recommend \
 ```bash
 curl -X POST http://localhost:8080/recommend \
   -H "Content-Type: application/json" \
-  -d '{"text": "Jazzy lo-fi beats for studying", "top_k": 3}'
+  -d '{"text": "Jazzy lo-fi beats for studying", "num_recommendations": 3}'
 ```
-
-### Benchmark
-This visualization compares the scoring distributions of the fine-tuned recommendation model against the base model. The refined model demonstrates a stronger alignment between songs and mood descriptors, with higher matching scores and tighter clustering, indicating more precise and emotionally relevant recommendations.
-
-![Model Benchmark](https://github.com/roth-ben/mood2music/blob/main/similarity_distribution.png)
 
 ## Project Structure 📂
 ```
@@ -124,6 +153,11 @@ This visualization compares the scoring distributions of the fine-tuned recommen
 - **GPU Availability**: Verify NVIDIA drivers with `nvidia-smi`
 - **Container Logs**: Check logs with `docker logs recommender`
 
+### Without GPU Support
+```bash
+docker run -d -p 8080:8080 --name recommender-cpu music-recommender
+```
+
 **Note**: This system uses synthetic data for demonstration purposes. For production use, replace with real music metadata and listening history data.
 
 # Data Quality Tester
@@ -131,7 +165,7 @@ This visualization compares the scoring distributions of the fine-tuned recommen
 
 ## Quick Start
 ```bash
-python3 ./test/debug_data.py
+python3 ./test/test_data_quality.py
 ```
 
 ## What It Checks
@@ -146,7 +180,7 @@ python3 ./test/debug_data.py
 
 ## Quick Start  
 ```bash  
-python3 ./test/debug_embeddings.py  
+python3 ./test/embedding_debug.py  
 ```  
 
 ## What It Checks  
@@ -161,7 +195,7 @@ python3 ./test/debug_embeddings.py
 
 ## Quick Start
 ```bash
-python3 ./test/debug_model.py
+python3 ./test/test_model_performance.py
 ```
 
 ## Key Features
@@ -180,4 +214,96 @@ python3 ./test/debug_model.py
 ## Key Metrics
 ✅ **Performance Delta**: Tuned vs. base model improvement  
 ✅ **Strong Matches**: Count of scores >0.7  
-✅ **Processing Speed**: Embedding generation time
+✅ **Processing Speed**: Embedding generation time  
+
+# Product-Scale Deployment
+
+In order to serve 20 million active users, here's a future-looking technical roadmap to achieve production-quality at scale.
+
+### **1. System Goals & Non-Functional Requirements**  
+**Key Objectives:**  
+- Serve 20M users (~2,315 RPS at 1 req/user/day)  
+- Guarantee ≤250ms P99 latency for recommendation requests  
+- Maintain 99.99% API availability (4 9's SLA)  
+- Support zero-downtime deployments  
+
+**Quantified Requirements:**  
+| Metric | Target | Calculation Basis |  
+|--------|--------|-------------------|  
+| Throughput | 5,000 RPS | 2x peak traffic buffer |  
+| Model Latency | ≤80ms | 30% latency budget allocation |  
+| API Latency | ≤150ms | 60% budget for network + preprocessing |  
+| Error Rate | <0.1% | SLA-compliant error budget |  
+| Cold Start Time | <30s | Kubernetes pod initialization |  
+
+**Critical Constraints:**  
+- GPU memory optimization for batched inference  
+- Stateless API design for horizontal scaling  
+- Regional affinity routing to minimize latency  
+- Model version rollback capability within 2 minutes  
+
+---
+
+### **2. Technical Architecture Components**  
+**Core Architecture Diagram:**  
+```
+                            ┌───────────────────────┐
+                            │ Global Load Balancer  │
+                            │ (AWS ALB/GCP GLB)     │
+                            └──────────┬───────────┘
+                                       ▼
+┌─────────────┐  API Calls  ┌───────────────────────┐  gRPC  ┌─────────────────┐
+│  API Layer  │◄────────────┤   Inference Service   │───────►│ Model Registry   │
+│ (FastAPI)   │             │ (NVIDIA Triton)       │        │ (MLflow/DVC)    │
+└──────┬──────┘             └───────────────────────┘        └─────────────────┘
+       │                              ▲                                ▲
+       │ HTTP/2                       │ gRPC                          │ Model Pull
+       ▼                              │                                │
+┌──────────────┐             ┌────────┴─────────┐             ┌────────┴─────────┐
+│  Edge Cache  │             │ Batch Inferencer │             │ Training Cluster │
+│ (Varnish)    │             │ (Ray/KubeFlow)   │             │ (GPU Nodes)      │
+└──────────────┘             └──────────────────┘             └──────────────────┘
+```
+
+**Key Components Breakdown:**  
+
+1. **Model Serving Tier**  
+   - **Triton Inference Server**: Deploy 8xA100 GPU nodes with:  
+     - Dynamic batching (max batch size=256)  
+     - Model ensembles for feature preprocessing  
+     - FP16 quantization for latency reduction  
+   - **Horizontal Scaling**: Auto-scaling group triggered by:  
+     ```math
+     \text{Scale Up If: } \frac{\text{GPU Memory Used}}{\text{Total Memory}} > 0.7 \text{ for 2m}
+     ```
+
+2. **API Tier**  
+   - **Stateless FastAPI** pods (1,000 replicas):  
+     - 1s timeout for Triton calls  
+     - JWT validation via sidecar (Istio)  
+   - **Redis Cache**:  
+     - 3-layer cache strategy:  
+       ```python
+       # Pseudocode
+       def get_recommendation(text):
+           if in_local_LRU: return cached  
+           elif in_redis: return redis.get()  
+           else: triton_call().then(redis.set(ttl=60s))  
+       ```
+
+3. **Data Pipeline**  
+   - **Real-Time Feature Store** (RedisTimeSeries):  
+     - Track trending tracks/session frequency  
+   - **Asynchronous Logging**:  
+     ```bash
+     fluentd → Kafka → Spark → S3 (hourly partitions)
+     ```
+
+4. **Network Optimization**  
+   - **Protocol Choices**:  
+     | Component       | Protocol   | Rationale               |
+     |-----------------|------------|-------------------------|
+     | Client → API    | HTTP/2     | Multiplexed connections |
+     | API → Triton    | gRPC       | Binary payloads        |
+     | Cache Updates   | UDP        | Tolerant to packet loss |
+
