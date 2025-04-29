@@ -1,7 +1,6 @@
-```markdown
 # Music Recommendation System 🎵🤖
 
-A Dockerized music recommendation system that generates synthetic data, trains a model, and serves personalized song recommendations via a REST API. Supports GPU acceleration for efficient training and inference.
+A lightweight, Dockerized music recommendation engine designed for experimentation and small-scale deployment. The system generates synthetic mood-based training data, fine-tunes a sentence-transformers model for semantic song-mood matching, and serves personalized recommendations via a REST API. Optimized for efficiency, it supports GPU acceleration (NVIDIA RTX 30-series or newer with ≥2GB VRAM) to enable fast training and inference on local hardware, ideal for prototyping, research, or hobbyist use.
 
 ![Docker](https://img.shields.io/badge/Docker-✔️-success) ![GPU Support](https://img.shields.io/badge/NVIDIA_GPU-✔️-76B900) ![REST API](https://img.shields.io/badge/REST_API-✔️-blue)
 
@@ -16,7 +15,7 @@ A Dockerized music recommendation system that generates synthetic data, trains a
 ## Prerequisites 📋
 
 - Docker Engine ≥ 20.10
-- NVIDIA CUDA-Supported GPU (30's+ series)
+- NVIDIA CUDA-Supported GPU (RTX 30's+ series)
 - NVIDIA Docker Toolkit (for GPU acceleration)
 - Python 3.8+ (for local development)
 - curl (for API testing)
@@ -77,7 +76,8 @@ Initial execution may take longer due to:
   "tracks": [
     {
         "id": "Song ID",
-        "title": "Artist Name",
+        "artist": "Artist Name",
+        "title": "Song Title",
         "score": 0.95,
         "mood": "calm"
     },
@@ -99,8 +99,13 @@ curl -X POST http://localhost:8080/recommend \
 ```bash
 curl -X POST http://localhost:8080/recommend \
   -H "Content-Type: application/json" \
-  -d '{"text": "Jazzy lo-fi beats for studying", "num_recommendations": 3}'
+  -d '{"text": "Jazzy lo-fi beats for studying", "top_k": 3}'
 ```
+
+### Benchmark
+This visualization compares the scoring distributions of the fine-tuned recommendation model against the base model. The refined model demonstrates a stronger alignment between songs and mood descriptors, with higher matching scores and tighter clustering, indicating more precise and emotionally relevant recommendations.
+
+![Model Benchmark](https://github.com/roth-ben/mood2music/blob/main/similarity_distribution.png)
 
 ## Project Structure 📂
 ```
@@ -119,11 +124,6 @@ curl -X POST http://localhost:8080/recommend \
 - **GPU Availability**: Verify NVIDIA drivers with `nvidia-smi`
 - **Container Logs**: Check logs with `docker logs recommender`
 
-### Without GPU Support
-```bash
-docker run -d -p 8080:8080 --name recommender-cpu music-recommender
-```
-
 **Note**: This system uses synthetic data for demonstration purposes. For production use, replace with real music metadata and listening history data.
 
 # Data Quality Tester
@@ -131,7 +131,7 @@ docker run -d -p 8080:8080 --name recommender-cpu music-recommender
 
 ## Quick Start
 ```bash
-python3 ./test/test_data_quality.py
+python3 ./test/debug_data.py
 ```
 
 ## What It Checks
@@ -146,7 +146,7 @@ python3 ./test/test_data_quality.py
 
 ## Quick Start  
 ```bash  
-python3 ./test/embedding_debug.py  
+python3 ./test/debug_embeddings.py  
 ```  
 
 ## What It Checks  
@@ -161,7 +161,7 @@ python3 ./test/embedding_debug.py
 
 ## Quick Start
 ```bash
-python3 ./test/test_model_performance.py
+python3 ./test/debug_model.py
 ```
 
 ## Key Features
@@ -180,4 +180,4 @@ python3 ./test/test_model_performance.py
 ## Key Metrics
 ✅ **Performance Delta**: Tuned vs. base model improvement  
 ✅ **Strong Matches**: Count of scores >0.7  
-✅ **Processing Speed**: Embedding generation time  
+✅ **Processing Speed**: Embedding generation time
