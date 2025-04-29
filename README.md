@@ -47,13 +47,17 @@ A Dockerized music recommendation system that generates synthetic data, trains a
 - **Customizable**: Easily modify recommendation count per request
 - **Synthetic Data Generation**: Built-in fake data creation for testing
 
+[↑ Back to Top](#top)
+
 ## Prerequisites 📋
 
 - Docker Engine ≥ 20.10
-- NVIDIA CUDA-Supported GPU (30's+ series)
+- NVIDIA CUDA-Supported GPU (CUDA 12.2.2+, RTX 30's+ series)
 - NVIDIA Docker Toolkit (for GPU acceleration)
 - Python 3.8+ (for local development)
 - curl (for API testing)
+
+[↑ Back to Top](#top)
 
 ## Getting Started 🚀
 
@@ -88,6 +92,8 @@ Initial execution may take longer due to:
 - Model training (~5 minutes)  
 - API server initialization (~30 seconds)
 
+[↑ Back to Top](#top)
+
 ## API Documentation 📖
 
 ### Recommendation Endpoint
@@ -120,6 +126,8 @@ Initial execution may take longer due to:
 }
 ```
 
+[↑ Back to Top](#top)
+
 ## Usage Examples 💡
 
 ### Basic Recommendation
@@ -146,6 +154,8 @@ curl -X POST http://localhost:8080/recommend \
 └── training/              # Training scripts
 ```
 
+[↑ Back to Top](#top)
+
 ## Troubleshooting 🔧
 
 ### Common Issues
@@ -159,6 +169,8 @@ docker run -d -p 8080:8080 --name recommender-cpu music-recommender
 ```
 
 **Note**: This system uses synthetic data for demonstration purposes. For production use, replace with real music metadata and listening history data.
+
+[↑ Back to Top](#top)
 
 # Data Quality Tester
 **Purpose**: Validates core integrity of music track metadata.
@@ -174,6 +186,8 @@ python3 ./test/test_data_quality.py
 ✅ **Moods**: Checks expected categories exist  
 ✅ **Completeness**: Identifies missing values  
 
+[↑ Back to Top](#top)
+
 # Embedding Debugger  
 
 **Purpose**: Validates embedding model quality, data integrity, and similarity distributions before deployment.  
@@ -188,6 +202,8 @@ python3 ./test/embedding_debug.py
 ✅ **Model**: Validates loading, GPU compatibility, output dimensions  
 ✅ **Embeddings**: Tests generation, normalization, and numerical stability  
 ✅ **Similarity**: Computes all-vs-all scores, analyzes distribution 
+
+[↑ Back to Top](#top)
 
 # Model Performance Tester
 
@@ -215,6 +231,8 @@ python3 ./test/test_model_performance.py
 ✅ **Performance Delta**: Tuned vs. base model improvement  
 ✅ **Strong Matches**: Count of scores >0.7  
 ✅ **Processing Speed**: Embedding generation time  
+
+[↑ Back to Top](#top)
 
 # Product-Scale Deployment
 
@@ -307,3 +325,4 @@ In order to serve 20 million active users, here's a future-looking technical roa
      | API → Triton    | gRPC       | Binary payloads        |
      | Cache Updates   | UDP        | Tolerant to packet loss |
 
+[↑ Back to Top](#top)
