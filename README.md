@@ -1,3 +1,4 @@
+<a id="top"></a>
 # Music Recommendation System 🎵🤖
 
 A Dockerized music recommendation system that generates synthetic data, trains a model, and serves personalized song recommendations via a REST API. Supports GPU acceleration for efficient training and inference.
@@ -36,8 +37,9 @@ A Dockerized music recommendation system that generates synthetic data, trains a
   - [Interpretation Guide](#interpretation-guide)
   - [Key Metrics](#key-metrics)
 - [Product-Scale Deployment](#product-scale-deployment)
-    - [**1. System Goals \& Non-Functional Requirements**](#1-system-goals--non-functional-requirements)
-    - [**2. Technical Architecture Components**](#2-technical-architecture-components)
+    - [1. System Goals \& Non-Functional Requirements](#1-system-goals--non-functional-requirements)
+    - [2. Technical Architecture Components](#2-technical-architecture-components)
+- [Got Questions? Ideas? 🗣️](#got-questions-ideas-️)
 
 ## Features ✨
 
@@ -238,7 +240,7 @@ python3 ./test/test_model_performance.py
 
 In order to serve 20 million active users, here's a future-looking technical roadmap to achieve production-quality at scale.
 
-### **1. System Goals & Non-Functional Requirements**  
+### 1. System Goals & Non-Functional Requirements  
 **Key Objectives:**  
 - Serve 20M users (~2,315 RPS at 1 req/user/day)  
 - Guarantee ≤250ms P99 latency for recommendation requests  
@@ -262,7 +264,7 @@ In order to serve 20 million active users, here's a future-looking technical roa
 
 ---
 
-### **2. Technical Architecture Components**  
+### 2. Technical Architecture Components  
 **Core Architecture Diagram:**  
 ```
                             ┌───────────────────────┐
@@ -326,3 +328,17 @@ In order to serve 20 million active users, here's a future-looking technical roa
      | Cache Updates   | UDP        | Tolerant to packet loss |
 
 [↑ Back to Top](#top)
+
+# Got Questions? Ideas? 🗣️
+
+**We're all ears!** 🙌  
+
+Found a bug? 🐛 Have suggestions for improvement? 💡 Want to collaborate on music AI? 🎶  
+
+👉 **Open a GitHub Issue**  
+👉 **Reach out to maintainers** (see profile contacts)  
+👉 **Star the repo** if you find this useful! ⭐  
+
+Let's make music recommendation systems better together! 🚀
+
+[↑ Back to Top](#top)s
