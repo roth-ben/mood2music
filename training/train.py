@@ -8,7 +8,8 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from sentence_transformers import SentenceTransformer, losses, util, InputExample
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from transformers import get_linear_schedule_with_warmup
+from sklearn.model_selection import train_test_split
+
 
 # ─── Logging Setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -21,55 +22,55 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ─── Text Augmentation ─────────────────────────────────────────────────────────
+""" from nlpaug.augmenter.word import BackTranslationAug
+
+aug = BackTranslationAug(
+    from_model_name='facebook/wmt19-en-de',  # English → German → English
+    to_model_name='facebook/wmt19-de-en'
+)
+
+def augment_text(text):
+    return aug.augment(text) """
 
 # ─── Dataset Definition ────────────────────────────────────────────────────────
 class MoodDataset(Dataset):
-    """Contrastive pairs of (description, description) with 1.0/0.0 labels."""
+    """Generates contrastive pairs with hard negative mining"""
     def __init__(self, df: pd.DataFrame):
         self.examples = []
         if len(df) < 10:
-            raise ValueError("Need at least 10 tracks for contrastive sampling")
-
+            raise ValueError("Need at least 10 tracks for contrastive learning")
+            
         for idx, row in df.iterrows():
             # Positive sampling
-            pos_cands = df[
-                (df.mood == row.mood) &
+            pos_candidates = df[
+                (df.mood == row.mood) & 
+                (df.index != idx) &
                 (abs(df.danceability - row.danceability) < 0.1) &
-                (abs(df.valence      - row.valence     ) < 0.1) &
-                (abs(df.energy       - row.energy      ) < 0.1) &
-                (df.index != idx)
+                (abs(df.valence - row.valence) < 0.1)
             ]
-            if pos_cands.empty:
-                pos_row = row
-            else:
-                pos_row = pos_cands.sample(1).iloc[0]
-
-            self.examples.append(
-                InputExample(
-                    texts=[row.description, pos_row.description],
-                    label=1.0
-                )
-            )
-
-            # Negative sampling (up to two hard negatives per anchor)
-            neg_cands = df[
+            pos_sample = pos_candidates.sample(1).iloc[0] if not pos_candidates.empty else row
+            
+            # Hard negative sampling
+            neg_candidates = df[
                 (df.mood != row.mood) &
                 (abs(df.danceability - row.danceability) < 0.25) &
-                (abs(df.valence      - row.valence     ) < 0.25) &
-                (abs(df.energy       - row.energy      ) < 0.25)
+                (abs(df.valence - row.valence) < 0.25)
             ]
-            if len(neg_cands) < 2:
-                neg_cands = df[df.mood != row.mood]
-            if len(neg_cands) < 2:
-                neg_cands = df.sample(frac=0.1)
-
-            for _, neg_row in neg_cands.sample(n=min(2, len(neg_cands))).iterrows():
-                self.examples.append(
-                    InputExample(
-                        texts=[row.description, neg_row.description],
-                        label=0.0
-                    )
-                )
+            if len(neg_candidates) < 2:
+                neg_candidates = df[df.mood != row.mood]
+            if len(neg_candidates) < 2:
+                neg_candidates = df.sample(frac=0.1)
+                
+            for _, neg_row in neg_candidates.sample(min(2, len(neg_candidates))).iterrows():
+                self.examples.append(InputExample(
+                    texts=[row['description'], neg_row['description']],
+                    label=0.0  # Negative pair
+                ))
+            self.examples.append(InputExample(
+                texts=[row['description'], pos_sample['description']],
+                label=1.0  # Positive pair
+            ))
 
     def __len__(self):
         return len(self.examples)
@@ -108,7 +109,18 @@ def main():
     model = SentenceTransformer(args.base_model, device='cuda')
     model.max_seq_length = 128
 
-    train_dataset = MoodDataset(df)
+    train_df, val_df = train_test_split(
+        df, 
+        test_size=0.1, 
+        random_state=42, 
+        stratify=df['mood']
+    )
+    logger.info(f"Train samples: {len(train_df)}, Validation samples: {len(val_df)}")
+    
+    # Create datasets
+    train_dataset = MoodDataset(train_df)
+    val_dataset = MoodDataset(val_df)
+    
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -119,9 +131,14 @@ def main():
     )
 
     # ─── Loss & Evaluator ────────────────────────────────────────────────────────
-    train_loss = losses.OnlineContrastiveLoss(model)
-    evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
-        train_dataset.examples[:1000],
+    train_loss = losses.ContrastiveLoss(
+        model=model,
+        margin=0.3,
+        distance_metric=losses.SiameseDistanceMetric.COSINE_DISTANCE
+    )
+
+    val_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
+        val_dataset.examples[:1000],  # Cap validation size
         name='mood-val',
         show_progress_bar=True
     )
@@ -130,7 +147,7 @@ def main():
     logger.info("Starting training…")
     model.fit(
         train_objectives=[(train_loader, train_loss)],
-        evaluator=evaluator,
+        evaluator=val_evaluator,
         epochs=args.epochs,
         optimizer_class=torch.optim.AdamW,
         optimizer_params={
